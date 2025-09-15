@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Análise Cibernética - Acesso Direto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: #000000;
+            color: #E2E8F0;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Efeito de grade sutil para o fundo, removendo o verde */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle, rgba(220, 38, 38, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            z-index: -2;
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(220, 38, 38, 0.1) 1px, transparent 1.5px);
+            background-size: 100px 100px;
+            animation: pulse-grid 8s linear infinite;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.1;
+        }
+
+        .text-neon-red {
+            color: #DC2626;
+        }
+        .bg-dark-terminal {
+            background-color: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(8px);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #1E293B;
+            background-color: rgba(2, 6, 23, 0.8);
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s, text-shadow 0.3s;
+            position: relative;
+        }
+        .nav-link.active {
+            color: #DC2626;
+            text-shadow: 0 0 5px #DC2626;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background-color: #DC2626;
+            transition: all 0.3s ease-in-out;
+            transform: translateX(-50%);
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .defense-layer {
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.2);
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+        .defense-layer.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.8);
+            border-color: #DC2626;
+            animation: none;
+        }
+        .timeline-step {
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .timeline-step:hover {
+            transform: translateY(-5px);
+            background-color: #1E293B;
+            box-shadow: 0 0 15px rgba(220, 38, 38, 0.4);
+        }
+        .timeline-step::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(220, 38, 38, 0.5), transparent, transparent, rgba(220, 38, 38, 0.5));
+            animation: border-sparkle 3s linear infinite;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .timeline-step:hover::after {
+            opacity: 1;
+        }
+
+        .card {
+            background-color: rgba(2, 6, 23, 0.8);
+            border: 1px solid #1E293B;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(220, 38, 38, 0.2);
+            border-color: #DC2626;
+        }
+
+        .glitch-text {
+            animation: glitch 1.5s infinite;
+        }
+        .glitch-text::before, .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .glitch-text::before {
+            left: 2px;
+            text-shadow: -2px 0 #DC2626;
+            animation: glitch-before 1.5s infinite;
+        }
+        .glitch-text::after {
+            left: -2px;
+            text-shadow: -2px 0 #00E2E8;
+            animation: glitch-after 1.5s infinite;
+        }
+
+        .loading-animation {
+            width: 50px;
+            height: 50px;
+            transform-style: preserve-3d;
+            animation: spin 3s infinite linear;
+        }
+        .loading-animation-face {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(220, 38, 38, 0.2);
+            border: 1px solid #DC2626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #DC2626;
+        }
+        .loading-animation-face-1 { transform: rotateY(0deg) translateZ(25px); }
+        .loading-animation-face-2 { transform: rotateY(90deg) translateZ(25px); }
+        .loading-animation-face-3 { transform: rotateY(180deg) translateZ(25px); }
+        .loading-animation-face-4 { transform: rotateY(-90deg) translateZ(25px); }
+        .loading-animation-face-5 { transform: rotateX(90deg) translateZ(25px); }
+        .loading-animation-face-6 { transform: rotateX(-90deg) translateZ(25px); }
+
+        /* Estilos do Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            overflow: auto;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .modal-content {
+            background-color: rgba(2, 6, 23, 0.95);
+            margin: 5% auto;
+            padding: 2rem;
+            border: 2px solid #DC2626;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 800px;
+            position: relative;
+            box-shadow: 0 0 40px rgba(220, 38, 38, 0.4);
+            animation: slideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .close-btn {
+            color: #E2E8F0;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .close-btn:hover {
+            color: #DC2626;
+        }
+        .modal-chart-container {
+            width: 100%;
+            height: 400px;
+            margin-top: 2rem;
+        }
+        
+        /* Animações */
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(220, 38, 38, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.6); }
+            100% { box-shadow: 0 0 5px rgba(220, 38, 38, 0.3); }
+        }
+
+        @keyframes border-sparkle {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-3px, 3px); }
+            40% { transform: translate(-3px, -3px); }
+            60% { transform: translate(3px, 3px); }
+            80% { transform: translate(3px, -3px); }
+            100% { transform: translate(0); }
+        }
+
+        @keyframes glitch-before {
+            0% { clip: rect(24px, 350px, 49px, 0); }
+            20% { clip: rect(6px, 350px, 30px, 0); }
+            40% { clip: rect(72px, 350px, 89px, 0); }
+            60% { clip: rect(81px, 350px, 83px, 0); }
+            80% { clip: rect(10px, 350px, 14px, 0); }
+            100% { clip: rect(41px, 350px, 78px, 0); }
+        }
+        @keyframes glitch-after {
+            0% { clip: rect(98px, 350px, 105px, 0); }
+            20% { clip: rect(31px, 350px, 50px, 0); }
+            40% { clip: rect(50px, 350px, 63px, 0); }
+            60% { clip: rect(51px, 350px, 86px, 0); }
+            80% { clip: rect(8px, 350px, 11px, 0); }
+            100% { clip: rect(88px, 350px, 94px, 0); }
+        }
+        
+        @keyframes pulse-grid {
+            0% { transform: scale(1); opacity: 0.1; }
+            50% { transform: scale(1.05); opacity: 0.15; }
+            100% { transform: scale(1); opacity: 0.1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotateX(0deg) rotateY(0deg); }
+            100% { transform: rotateX(360deg) rotateY(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Conteúdo principal do painel (visível por padrão) -->
+    <div id="main-content">
+        <header class="bg-dark-terminal backdrop-blur-lg sticky top-0 z-50 shadow-lg border-b border-gray-800">
+            <nav class="container mx-auto px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-xl font-bold text-neon-red glitch-text relative" data-text="CYBER-GRID_MONITOR >_">CYBER-GRID_MONITOR >_</h1>
+                    <div class="hidden md:flex items-center space-x-8 text-sm nav-menu">
+                        <a href="#intro" class="nav-link text-slate-400 hover:text-neon-red pb-1">Início</a>
+                        <a href="#threats" class="nav-link text-slate-400 hover:text-neon-red pb-1">Ameaças</a>
+                        <a href="#defense" class="nav-link text-slate-400 hover:text-neon-red pb-1">Defesa</a>
+                        <a href="#devsec" class="nav-link text-slate-400 hover:text-neon-red pb-1">DevSecOps</a>
+                        <a href="#response" class="nav-link text-slate-400 hover:text-neon-red pb-1">Resposta</a>
+                        <a href="#governance" class="nav-link text-slate-400 hover:text-neon-red pb-1">Governança</a>
+                        <a href="#human" class="nav-link text-slate-400 hover:text-neon-red pb-1">Pessoas</a>
+                        <a href="#future" class="nav-link text-slate-400 hover:text-neon-red pb-1">Futuro</a>
+                    </div>
+                    <button id="mobile-menu-btn" class="md:hidden mobile-menu-btn" aria-label="Toggle navigation">
+                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
+                </div>
+            </nav>
+            <div id="mobile-menu" class="mobile-menu md:hidden">
+                <a href="#intro" class="nav-link text-slate-400 hover:text-neon-red py-2 px-6">Início</a>
+                <a href="#threats" class="nav-link text-slate-400 hover:text-neon-red py-2 px-6">Ameaças</a>
+                <a href="#defense" class="nav-link text-slate-400 hover:text-neon-red py-2 px-6">Defesa</a>
+                <a href="#devsec" class="nav-link text-slate-400 hover:text-neon-red py-2 px-6">DevSecOps</a>
+                <a href="#response" class="nav-link text-slate-400 hover:text-neon-red py-2 px-6">Resposta</a>
+                <a href="#governance" class="nav-link text-slate-400 hover:text-neon-red py-2 px-6">Governança</a>
+                <a href="#human" class="nav-link text-slate-400 hover:text-neon-red py-2 px-6">Pessoas</a>
+                <a href="#future" class="nav-link text-slate-400 hover:text-neon-red py-2 px-6">Futuro</a>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-6 py-12">
+
+            <section id="intro" class="scroll-mt-24 text-center mb-24">
+                <h2 class="text-4xl font-bold text-neon-red mb-4 glitch-text relative" data-text="Painel de Acesso Privado">Painel de Acesso Privado</h2>
+                <p class="max-w-3xl mx-auto text-lg text-slate-400">
+                    Acesso seguro concedido. Este painel fornece uma visão aprofundada das operações de segurança cibernética. Analise ameaças, táticas de defesa e protocolos de resposta a incidentes. A vigilância é a nossa primeira linha de defesa.
+                </p>
+            </section>
+
+            <section id="loading-demo" class="scroll-mt-24 mb-24 text-center">
+                <h3 class="text-3xl font-bold text-neon-red mb-2 glitch-text relative" data-text="Carregando Dados">Carregando Dados</h3>
+                <p class="text-center text-slate-400 mb-12 max-w-2xl mx-auto">Demonstração de um processo de análise de dados. A IA está trabalhando para gerar relatórios em tempo real.</p>
+                <div class="flex flex-col items-center justify-center space-y-4">
+                    <div class="loading-animation-container perspective-[1000px]">
+                        <div class="loading-animation">
+                            <div class="loading-animation-face loading-animation-face-1">1</div>
+                            <div class="loading-animation-face loading-animation-face-2">2</div>
+                            <div class="loading-animation-face loading-animation-face-3">3</div>
+                            <div class="loading-animation-face loading-animation-face-4">4</div>
+                            <div class="loading-animation-face loading-animation-face-5">5</div>
+                            <div class="loading-animation-face loading-animation-face-6">6</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 font-bold mt-4">Conectando...</p>
+                    <div class="w-1/2 bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-neon-red h-full rounded-full transition-all duration-1000 ease-in-out w-3/4 animate-pulse"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="threats" class="scroll-mt-24 mb-24">
+                <h3 class="text-3xl font-bold text-center text-neon-red mb-2">O Cenário de Ameaças</h3>
+                <p class="text-center text-slate-400 mb-12 max-w-2xl mx-auto">As ameaças cibernéticas são dinâmicas. Compreender os vetores de ataque é o primeiro passo para uma defesa eficaz. Clique no gráfico para explorar cada ameaça.</p>
+
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="chart-container">
+                        <canvas id="threatsChart"></canvas>
+                    </div>
+                    <div id="threat-details" class="card bg-dark-terminal p-8 rounded-lg shadow-md border border-gray-800 min-h-[350px]">
+                        <h4 id="threat-title" class="text-2xl font-bold text-neon-red mb-4">Selecione uma Ameaça</h4>
+                        <p id="threat-description" class="text-slate-400">Clique em uma seção do gráfico para ver os detalhes sobre cada tipo de ataque cibernético. A informação apresentada aqui ajudará a compreender como os atacantes operam e quais são suas táticas mais comuns, como o uso de malware, phishing e negação de serviço.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="defense" class="scroll-mt-24 mb-24">
+                <h3 class="text-3xl font-bold text-center text-neon-red mb-2">A Estrutura de Defesa em Profundidade</h3>
+                <p class="text-center text-slate-400 mb-12 max-w-2xl mx-auto">Uma defesa eficaz utiliza múltiplas camadas de proteção. Se uma camada falhar, outra estará lá para impedir o ataque. Clique em cada camada para descobrir as medidas de prevenção associadas.</p>
+
+                <div class="flex flex-col md:flex-row items-center justify-center gap-8">
+                    <div class="w-full max-w-md flex items-center justify-center p-4">
+                        <div id="layer-people" data-layer="people" class="defense-layer bg-slate-800 rounded-full w-80 h-80 flex items-center justify-center shadow-lg border-4 border-slate-700">
+                            <div id="layer-data" data-layer="data" class="defense-layer bg-slate-700 rounded-full w-64 h-64 flex items-center justify-center shadow-md border-4 border-slate-600">
+                                <div id="layer-endpoints" data-layer="endpoints" class="defense-layer bg-slate-600 rounded-full w-48 h-48 flex items-center justify-center shadow-md border-4 border-slate-500">
+                                    <div id="layer-network" data-layer="network" class="defense-layer bg-slate-500 rounded-full w-32 h-32 flex items-center justify-center shadow-md border-4 border-slate-400">
+                                        <span class="text-white font-bold text-center text-sm">Rede</span>
+                                    </div>
+                                    <span class="absolute mt-40 text-slate-400 font-semibold">Endpoints</span>
+                                </div>
+                                <span class="absolute mt-56 text-slate-400 font-semibold">Dados</span>
+                            </div>
+                            <span class="absolute mt-72 text-slate-400 font-semibold">Pessoas</span>
+                        </div>
+                    </div>
+
+                    <div id="defense-details" class="card w-full md:w-1/2 bg-dark-terminal p-8 rounded-lg shadow-md border border-gray-800 min-h-[320px]">
+                        <h4 id="defense-title" class="text-2xl font-bold text-neon-red mb-4">Selecione uma Camada</h4>
+                        <p id="defense-description" class="text-slate-400">A proteção em camadas (Defense-in-Depth) é um princípio fundamental. Começando pela rede (a camada mais interna) e expandindo para as pessoas (a camada mais externa), cada nível adiciona uma barreira de segurança.</p>
+                        <ul id="defense-items" class="mt-4 space-y-2 text-slate-400 list-disc list-inside">
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="devsec" class="scroll-mt-24 mb-24">
+                <h3 class="text-3xl font-bold text-center text-neon-red mb-2">Segurança no Desenvolvimento de Software</h3>
+                <p class="text-center text-slate-400 mb-12 max-w-2xl mx-auto">Integrar segurança desde as fases iniciais do desenvolvimento é mais eficaz e econômico do que corrigir vulnerabilidades após a implantação. Esta abordagem, conhecida como DevSecOps, insere a segurança em todo o ciclo de vida.</p>
+
+                <div class="grid md:grid-cols-3 gap-8 text-center">
+                    <div id="devsec-sast" data-devsec="sast" class="devsec-item card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">Análise de Código Estática (SAST)</h4>
+                        <p class="text-slate-400">Ferramentas que analisam o código-fonte em busca de falhas de segurança antes mesmo da execução, garantindo um código mais limpo e seguro.</p>
+                    </div>
+                    <div id="devsec-dast" data-devsec="dast" class="devsec-item card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">Análise de Código Dinâmica (DAST)</h4>
+                        <p class="text-slate-400">Testa a aplicação em execução para encontrar vulnerabilidades que não são visíveis no código-fonte, simulando ataques e identificando fraquezas.</p>
+                    </div>
+                    <div id="devsec-dependencies" data-devsec="dependencies" class="devsec-item card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">Gestão de Dependências</h4>
+                        <p class="text-slate-400">Monitora e atualiza bibliotecas e frameworks de terceiros, pois vulnerabilidades nesses componentes podem ser exploradas facilmente por atacantes.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="response" class="scroll-mt-24 mb-24">
+                <h3 class="text-3xl font-bold text-center text-neon-red mb-2">Plano de Resposta a Incidentes (IRP)</h3>
+                <p class="text-center text-slate-400 mb-12 max-w-2xl mx-auto">Ter um plano de resposta bem definido é crucial para minimizar danos após um incidente. Clique em cada etapa para entender o processo.</p>
+
+                <div class="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div data-step="preparation" class="timeline-step card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">1. Preparação</h4>
+                        <p class="text-slate-400 text-sm mt-2">Construir uma equipe, definir políticas e ter as ferramentas necessárias antes de um incidente ocorrer.</p>
+                    </div>
+                    <div data-step="detection" class="timeline-step card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">2. Detecção e Análise</h4>
+                        <p class="text-slate-400 text-sm mt-2">Identificar a atividade maliciosa e analisar a extensão e o impacto da violação.</p>
+                    </div>
+                    <div data-step="containment" class="timeline-step card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">3. Contenção</h4>
+                        <p class="text-slate-400 text-sm mt-2">Isolar os sistemas afetados para impedir a propagação do ataque e limitar os danos.</p>
+                    </div>
+                    <div data-step="eradication" class="timeline-step card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">4. Erradicação</h4>
+                        <p class="text-slate-400 text-sm mt-2">Remover completamente o agente malicioso e todas as suas pegadas dos sistemas.</p>
+                    </div>
+                    <div data-step="recovery" class="timeline-step card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">5. Recuperação</h4>
+                        <p class="text-slate-400 text-sm mt-2">Restaurar os sistemas para o estado normal de operação, monitorando-os para evitar novas infecções.</p>
+                    </div>
+                    <div data-step="lessons" class="timeline-step card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">6. Lições Aprendidas</h4>
+                        <p class="text-slate-400 text-sm mt-2">Documentar o incidente para entender a causa raiz, aprimorar o plano e evitar futuras ocorrências.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="governance" class="scroll-mt-24 mb-24">
+                <h3 class="text-3xl font-bold text-center text-neon-red mb-2">Governança, Risco e Conformidade (GRC)</h3>
+                <p class="text-center text-slate-400 mb-12 max-w-2xl mx-auto">As medidas técnicas são eficazes apenas quando apoiadas por um framework de governança sólido que integra a segurança aos objetivos de negócios.</p>
+
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="card bg-dark-terminal p-8 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="text-2xl font-bold text-neon-red mb-4">Conformidade Regulatória</h4>
+                        <p class="text-slate-400 mb-4">Leis de proteção de dados como a **LGPD** no Brasil e a **GDPR** na Europa impõem requisitos rigorosos para o tratamento de informações pessoais. A não-conformidade pode resultar em multas pesadas e danos à reputação.</p>
+                        <ul class="list-disc list-inside text-slate-400 space-y-2">
+                            <li>Garantir o consentimento explícito para coleta de dados.</li>
+                            <li>Prover transparência sobre como os dados são usados.</li>
+                            <li>Manter a segurança dos dados por meio de criptografia e controles de acesso.</li>
+                            <li>Notificar autoridades e usuários em caso de violação de dados.</li>
+                        </ul>
+                    </div>
+                    <div class="card bg-dark-terminal p-8 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="text-2xl font-bold text-neon-red mb-4">Avaliação de Riscos</h4>
+                        <p class="text-slate-400 mb-4">Uma avaliação de riscos sistemática identifica, analisa e prioriza os riscos cibernéticos. Este processo é um pilar da governança e ajuda a alocar recursos de forma inteligente.</p>
+                        <ul class="list-disc list-inside text-slate-400 space-y-2">
+                            <li>Identificar ativos críticos (dados, sistemas, infraestrutura).</li>
+                            <li>Avaliar ameaças e vulnerabilidades.</li>
+                            <li>Priorizar riscos com base na probabilidade e no impacto.</li>
+                            <li>Implementar controles para mitigar os riscos mais críticos.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="human" class="scroll-mt-24 mb-24">
+                 <h3 class="text-3xl font-bold text-center text-neon-red mb-2">O Fator Humano: O Elo Decisivo</h3>
+                <p class="text-center text-slate-400 mb-12 max-w-2xl mx-auto">O erro humano continua a ser uma das maiores causas de violações. Investir em conscientização e treinamento contínuo transforma o elo mais fraco na primeira linha de defesa.</p>
+
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="card bg-dark-terminal p-8 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="text-2xl font-bold text-neon-red mb-4">O Impacto do Treinamento</h4>
+                        <p class="text-slate-400">Programas de treinamento contínuo e simulações de phishing reduzem drasticamente a probabilidade de um funcionário ser vítima de engenharia social. O gráfico ao lado ilustra a redução do risco de incidentes após a implementação de um programa de conscientização robusto.</p>
+                    </div>
+                    <div class="chart-container h-80">
+                        <canvas id="trainingChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="future" class="scroll-mt-24 mb-24">
+                <h3 class="text-3xl font-bold text-center text-neon-red mb-2">O Futuro da Segurança Cibernética</h3>
+                <p class="text-center text-slate-400 mb-12 max-w-2xl mx-auto">O cenário de ameaças está em constante evolução, com atacantes utilizando novas tecnologias. A defesa também deve evoluir para se manter à frente da curva.</p>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">Inteligência Artificial (IA) em Defesa</h4>
+                        <p class="text-slate-400">A IA e o aprendizado de máquina (ML) são usados para detectar anomalias, identificar novas ameaças em tempo real e automatizar a resposta a incidentes. A IA pode analisar vastas quantidades de dados de rede e comportamento de usuários de forma mais rápida do que humanos, melhorando a detecção e prevenção.</p>
+                    </div>
+                    <div class="card bg-dark-terminal p-6 rounded-lg shadow-md border border-gray-800">
+                        <h4 class="font-bold text-xl mb-2 text-neon-red">Ameaças Emergentes</h4>
+                        <p class="text-slate-400">Novos tipos de ataques surgem constantemente. Ameaças à cadeia de suprimentos, onde um atacante compromete um fornecedor confiável para atingir seus clientes, estão se tornando cada vez mais comuns. Além disso, a IA generativa está sendo usada para criar ataques de phishing e engenharia social mais convincentes e difíceis de detectar.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="bg-dark-terminal mt-24">
+            <div class="container mx-auto px-6 py-6 text-center text-slate-500">
+                <p>&copy; 2025 Painel de Análise Cibernética. Acesso privado BUILD FOR: Escanearcpl &copy;</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal para informações detalhadas -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3 id="modal-title" class="text-3xl font-bold text-neon-red mb-4"></h3>
+            <p id="modal-description" class="text-slate-400 mb-6"></p>
+            <div id="modal-chart-container" class="modal-chart-container">
+                <canvas id="modalChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Lógica de Interação com Camadas de Defesa ---
+    const defenseData = {
+        network: {
+            title: 'Camada de Rede',
+            description: 'A primeira linha de defesa técnica, focada em controlar o tráfego que entra e sai da rede e em isolar os sistemas críticos. Inclui tecnologias para monitoramento e prevenção de intrusões.',
+            items: ['Firewalls e IPS/IDS', 'Segmentação de Rede e Microsegmentação', 'VPNs para acesso remoto seguro']
+        },
+        endpoints: {
+            title: 'Camada de Endpoints',
+            description: 'Proteção de dispositivos como computadores, servidores e celulares, que são os pontos de entrada para a rede. A segurança aqui impede que malwares se espalhem e comprometam a infraestrutura.',
+            items: ['Antivírus e EDR (Endpoint Detection & Response)', 'Gestão de Patches e Atualizações', 'Criptografia de Disco Completo']
+        },
+        data: {
+            title: 'Camada de Dados',
+            description: 'Focada na proteção da informação em si, seja em repouso (armazenada), em trânsito (transmitida) ou em uso. A criptografia é a principal ferramenta nesta camada.',
+            items: ['Criptografia de Dados', 'Prevenção de Perda de Dados (DLP)', 'Backups Regulares e Seguros', 'Restrição de Acesso aos Dados']
+        },
+        people: {
+            title: 'Camada Humana',
+            description: 'A camada mais externa e crucial, focada em educar e capacitar os usuários para serem uma defesa ativa. O erro humano é a causa de muitas violações, e a conscientização é a melhor prevenção.',
+            items: ['Treinamento de Conscientização', 'Simulações de Phishing', 'Políticas de Senha Fortes', 'Autenticação Multifactor (MFA)']
+        }
+    };
+
+    const defenseLayers = document.querySelectorAll('.defense-layer');
+    function updateDefenseDetails(layerId) {
+        const details = defenseData[layerId];
+        if (!details) return;
+
+        document.getElementById('defense-title').textContent = details.title;
+        document.getElementById('defense-description').textContent = details.description;
+        const itemsList = document.getElementById('defense-items');
+        itemsList.innerHTML = '';
+        details.items.forEach(itemText => {
+            const li = document.createElement('li');
+            li.textContent = `> ${itemText}`;
+            itemsList.appendChild(li);
+        });
+
+        defenseLayers.forEach(l => l.classList.remove('active'));
+        document.getElementById(`layer-${layerId}`).classList.add('active');
+    }
+
+    defenseLayers.forEach(layer => {
+        layer.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const layerId = e.currentTarget.dataset.layer;
+            updateDefenseDetails(layerId);
+        });
+    });
+
+    updateDefenseDetails('network');
+
+    // --- Dados e Lógica dos Gráficos ---
+    const threatData = {
+        'Phishing e Engenharia Social': {
+            title: 'Phishing e Engenharia Social',
+            description: 'Técnica de engenharia social onde atacantes se passam por entidades confiáveis para enganar usuários e roubar informações sensíveis. E-mails e mensagens de texto são os vetores mais comuns.'
+        },
+        'Malware e Ransomware': {
+            title: 'Malware e Ransomware',
+            description: 'Software malicioso (vírus, cavalos de Tróia, spyware) que causa danos ou rouba dados. Ransomware é uma forma destrutiva de malware que sequestra arquivos do sistema e exige um resgate para restaurar o acesso.'
+        },
+        'Ataques de Negação de Serviço (DDoS)': {
+            title: 'Ataques de Negação de Serviço (DDoS)',
+            description: 'Tentativa de tornar um serviço online indisponível, sobrecarregando-o com um volume massivo de tráfego de múltiplas fontes. Geralmente, o objetivo é a interrupção operacional.'
+        },
+        'Injeção de Código (SQL/XSS)': {
+            title: 'Injeção de Código (SQL/XSS)',
+            description: 'Exploração de vulnerabilidades em aplicações web para injetar código malicioso. Injeção de SQL permite acesso a bancos de dados, enquanto o Cross-Site Scripting (XSS) ataca os usuários do site para roubar informações.'
+        },
+        'Zero-Day Exploits': {
+            title: 'Zero-Day Exploits',
+            description: 'Vulnerabilidades de software desconhecidas pelos desenvolvedores ou pelo público. Os atacantes exploram essas falhas antes que os patches estejam disponíveis, tornando-as extremamente perigosas.'
+        }
+    };
+
+    const threatsCtx = document.getElementById('threatsChart').getContext('2d');
+    const threatsChart = new Chart(threatsCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Phishing e Engenharia Social', 'Malware e Ransomware', 'Ataques de Negação de Serviço (DDoS)', 'Injeção de Código (SQL/XSS)', 'Zero-Day Exploits'],
+            datasets: [{
+                label: 'Tipos de Ataques Comuns',
+                data: [40, 30, 15, 10, 5],
+                backgroundColor: ['#DC2626', '#EF4444', '#F87171', '#FCA5A5', '#FECACA'],
+                borderColor: '#0F172A',
+                borderWidth: 4,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#94A3B8'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${context.raw}%`;
+                        }
+                    }
+                }
+            },
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const chartElement = elements[0];
+                    const label = threatsChart.data.labels[chartElement.index];
+                    updateThreatDetails(label);
+                }
+            }
+        }
+    });
+
+    function updateThreatDetails(threatName) {
+        const details = threatData[threatName];
+        if (details) {
+            document.getElementById('threat-title').textContent = details.title;
+            document.getElementById('threat-description').textContent = details.description;
+        }
+    }
+
+    const trainingCtx = document.getElementById('trainingChart').getContext('2d');
+    const trainingChart = new Chart(trainingCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Risco de Incidente'],
+            datasets: [{
+                label: 'Sem Treinamento',
+                data: [75],
+                backgroundColor: '#FCA5A5',
+                borderColor: '#F87171',
+                borderWidth: 1
+            }, {
+                label: 'Com Treinamento Contínuo',
+                data: [15],
+                backgroundColor: '#DC2626',
+                borderColor: '#EF4444',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Probabilidade de Incidente (%)',
+                        color: '#94A3B8'
+                    },
+                    ticks: {
+                        color: '#94A3B8'
+                    },
+                    grid: {
+                        color: '#1E293B'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#94A3B8'
+                    },
+                    grid: {
+                        color: '#1E293B'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#94A3B8'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw}% de risco`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // --- Lógica de Navegação e Rolagem ---
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    mobileMenuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('open');
+    });
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            // Remove a classe 'open' do menu móvel ao clicar em um link
+            if (mobileMenu.classList.contains('open')) {
+                mobileMenu.classList.remove('open');
+            }
+        });
+    });
+
+    const observerOptions = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.4
+    };
+
+    const observer = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.getAttribute('id');
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${id}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    }, observerOptions);
+
+    sections.forEach(section => {
+        observer.observe(section);
+    });
+    
+    // --- Lógica do Modal ---
+    const infoModal = document.getElementById('infoModal');
+    const closeBtn = document.querySelector('.close-btn');
+
+    closeBtn.addEventListener('click', () => {
+        infoModal.style.display = 'none';
+        // Destruir o gráfico ao fechar para evitar acúmulo de instâncias
+        if (window.modalChartInstance) {
+            window.modalChartInstance.destroy();
+            window.modalChartInstance = null;
+        }
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == infoModal) {
+            infoModal.style.display = 'none';
+            if (window.modalChartInstance) {
+                window.modalChartInstance.destroy();
+                window.modalChartInstance = null;
+            }
+        }
+    });
+
+    const devsecItems = document.querySelectorAll('.devsec-item');
+    const responseSteps = document.querySelectorAll('.timeline-step');
+
+    const devsecData = {
+        sast: {
+            title: "Análise de Código Estática (SAST)",
+            description: "A SAST (Static Application Security Testing) é uma metodologia de segurança que examina o código-fonte de uma aplicação em busca de vulnerabilidades antes que o software seja compilado ou executado. É como uma revisão de código automatizada que encontra falhas comuns, como injeção de SQL, vulnerabilidades de XSS e falhas de criptografia. O gráfico ilustra a detecção de vulnerabilidades ao longo das fases de desenvolvimento.",
+            chart: {
+                type: 'line',
+                data: {
+                    labels: ['Análise de Requisitos', 'Design', 'Codificação', 'Teste'],
+                    datasets: [{
+                        label: 'Vulnerabilidades Encontradas por Fase',
+                        data: [5, 12, 55, 3],
+                        backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                        borderColor: '#DC2626',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Nº de Vulnerabilidades' },
+                            ticks: { color: '#94A3B8' },
+                            grid: { color: '#1E293B' }
+                        },
+                        x: {
+                            ticks: { color: '#94A3B8' },
+                            grid: { color: '#1E293B' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#94A3B8' } }
+                    }
+                }
+            }
+        },
+        dast: {
+            title: "Análise de Código Dinâmica (DAST)",
+            description: "A DAST (Dynamic Application Security Testing) analisa uma aplicação em execução, simulando ataques externos para encontrar vulnerabilidades que não são visíveis apenas no código-fonte. É eficaz na identificação de falhas de autenticação, problemas de sessão e outros erros que só se manifestam em tempo de execução. O gráfico mostra a evolução da detecção de vulnerabilidades ao longo de testes de regressão.",
+            chart: {
+                type: 'bar',
+                data: {
+                    labels: ['Sistemas de Login', 'Processos de Pagamento', 'APIs de Terceiros', 'Gerenciamento de Dados'],
+                    datasets: [{
+                        label: 'Vulnerabilidades por Módulo',
+                        data: [25, 10, 5, 8],
+                        backgroundColor: ['#DC2626', '#EF4444', '#F87171', '#FCA5A5'],
+                        borderColor: '#0F172A',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Nº de Vulnerabilidades' },
+                            ticks: { color: '#94A3B8' },
+                            grid: { color: '#1E293B' }
+                        },
+                        x: {
+                            ticks: { color: '#94A3B8' },
+                            grid: { color: '#1E293B' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#94A3B8' } }
+                    }
+                }
+            }
+        },
+        dependencies: {
+            title: "Gestão de Dependências",
+            description: "A Gestão de Dependências é o processo de monitorar e gerenciar todas as bibliotecas, frameworks e componentes de código aberto (open-source) utilizados em uma aplicação. Uma única vulnerabilidade em uma dependência pode comprometer todo o sistema. Este gráfico ilustra a proporção de vulnerabilidades graves, médias e baixas encontradas em dependências de projetos.",
+            chart: {
+                type: 'pie',
+                data: {
+                    labels: ['Vulnerabilidades Graves', 'Vulnerabilidades Médias', 'Vulnerabilidades Baixas'],
+                    datasets: [{
+                        label: 'Gravidade das Vulnerabilidades',
+                        data: [15, 45, 40],
+                        backgroundColor: ['#DC2626', '#EF4444', '#FCA5A5'],
+                        borderColor: '#0F172A',
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94A3B8' } },
+                        tooltip: { callbacks: { label: (context) => `${context.label}: ${context.raw}%` } }
+                    }
+                }
+            }
+        }
+    };
+
+    const responseData = {
+        preparation: {
+            title: "1. Preparação",
+            description: "A fase de preparação é a base de um plano de resposta a incidentes eficaz. Ela envolve a criação de uma equipe de resposta, a definição de políticas claras, a identificação de sistemas e ativos críticos, e a aquisição de ferramentas necessárias. Um bom plano reduz o tempo de resposta e minimiza o impacto de um ataque.",
+            chart: {
+                type: 'bar',
+                data: {
+                    labels: ['Tempo Médio de Resposta'],
+                    datasets: [{
+                        label: 'Sem Preparação (em horas)',
+                        data: [48],
+                        backgroundColor: '#F87171'
+                    }, {
+                        label: 'Com Preparação (em horas)',
+                        data: [8],
+                        backgroundColor: '#DC2626'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Horas' }, ticks: { color: '#94A3B8' }, grid: { color: '#1E293B' } },
+                        x: { ticks: { color: '#94A3B8' }, grid: { color: '#1E293B' } }
+                    },
+                    plugins: { legend: { labels: { color: '#94A3B8' } } }
+                }
+            }
+        },
+        detection: {
+            title: "2. Detecção e Análise",
+            description: "Esta etapa foca na identificação de atividades suspeitas e na análise do incidente. O monitoramento contínuo de logs, o uso de sistemas de detecção de intrusão (IDS) e a análise de comportamento são cruciais para um tempo de detecção rápido. O gráfico mostra a redução do tempo médio de detecção com a implementação de ferramentas de monitoramento.",
+            chart: {
+                type: 'line',
+                data: {
+                    labels: ['Mês 1', 'Mês 2', 'Mês 3', 'Mês 4'],
+                    datasets: [{
+                        label: 'Tempo Médio de Detecção (em dias)',
+                        data: [30, 15, 7, 2],
+                        backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                        borderColor: '#DC2626',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Dias' }, ticks: { color: '#94A3B8' }, grid: { color: '#1E293B' } },
+                        x: { ticks: { color: '#94A3B8' }, grid: { color: '#1E293B' } }
+                    },
+                    plugins: { legend: { labels: { color: '#94A3B8' } } }
+                }
+            }
+        },
+        containment: {
+            title: "3. Contenção",
+            description: "Após a detecção, a contenção é a ação imediata para limitar os danos. Isso pode incluir a desconexão de sistemas comprometidos, o isolamento de segmentos de rede e a desativação de contas de usuário. Uma contenção rápida impede a propagação do ataque. O gráfico ilustra a porcentagem de sistemas isolados em diferentes intervalos de tempo.",
+            chart: {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sistemas Contidos', 'Sistemas Não Contidos'],
+                    datasets: [{
+                        label: 'Eficácia da Contenção',
+                        data: [90, 10],
+                        backgroundColor: ['#DC2626', '#FCA5A5'],
+                        borderColor: '#0F172A',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94A3B8' } },
+                        tooltip: { callbacks: { label: (context) => `${context.label}: ${context.raw}%` } }
+                    }
+                }
+            }
+        },
+        eradication: {
+            title: "4. Erradicação",
+            description: "Esta é a fase de remoção. A equipe de resposta a incidentes limpa o ambiente, remove o malware e fecha as vulnerabilidades exploradas. A erradicação garante que o atacante não possa reutilizar o mesmo ponto de entrada. O gráfico simula a taxa de sucesso na erradicação de ameaças.",
+            chart: {
+                type: 'bar',
+                data: {
+                    labels: ['Ameaças Removidas', 'Ameaças Persistentes'],
+                    datasets: [{
+                        label: 'Eficácia da Erradicação',
+                        data: [95, 5],
+                        backgroundColor: ['#DC2626', '#F87171'],
+                        borderColor: '#0F172A',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Porcentagem (%)' }, ticks: { color: '#94A3B8' }, grid: { color: '#1E293B' } },
+                        x: { ticks: { color: '#94A3B8' }, grid: { color: '#1E293B' } }
+                    },
+                    plugins: { legend: { labels: { color: '#94A3B8' } } }
+                }
+            }
+        },
+        recovery: {
+            title: "5. Recuperação",
+            description: "A fase de recuperação foca em restaurar as operações de negócios. Isso inclui a reconstrução de sistemas, a restauração de dados a partir de backups seguros e a implementação de medidas de segurança adicionais. A monitoração contínua é essencial para garantir que o atacante não retorne.",
+            chart: {
+                type: 'line',
+                data: {
+                    labels: ['Dia 1', 'Dia 2', 'Dia 3', 'Dia 4', 'Dia 5'],
+                    datasets: [{
+                        label: 'Sistemas Restaurados (%)',
+                        data: [20, 50, 80, 95, 100],
+                        backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                        borderColor: '#DC2626',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100, title: { display: true, text: 'Porcentagem de Restauração (%)' }, ticks: { color: '#94A3B8' }, grid: { color: '#1E293B' } },
+                        x: { ticks: { color: '#94A3B8' }, grid: { color: '#1E293B' } }
+                    },
+                    plugins: { legend: { labels: { color: '#94A3B8' } } }
+                }
+            }
+        },
+        lessons: {
+            title: "6. Lições Aprendidas",
+            description: "A última etapa, mas não menos importante, é a análise pós-incidente. A equipe de resposta documenta o que aconteceu, o que funcionou e o que pode ser melhorado. Esta informação é usada para refinar o plano de resposta a incidentes e fortalecer a segurança geral da organização, garantindo que o mesmo erro não ocorra novamente.",
+            chart: {
+                type: 'pie',
+                data: {
+                    labels: ['Melhorias em Políticas', 'Melhorias em Ferramentas', 'Melhorias em Treinamento'],
+                    datasets: [{
+                        label: 'Áreas de Melhoria',
+                        data: [40, 35, 25],
+                        backgroundColor: ['#DC2626', '#EF4444', '#FCA5A5'],
+                        borderColor: '#0F172A',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94A3B8' } },
+                        tooltip: { callbacks: { label: (context) => `${context.label}: ${context.raw}%` } }
+                    }
+                }
+            }
+        }
+    };
+
+    function showModal(data) {
+        document.getElementById('modal-title').textContent = data.title;
+        document.getElementById('modal-description').textContent = data.description;
+        infoModal.style.display = 'block';
+
+        const chartCanvas = document.getElementById('modalChart');
+        if (window.modalChartInstance) {
+            window.modalChartInstance.destroy();
+        }
+        window.modalChartInstance = new Chart(chartCanvas.getContext('2d'), data.chart);
+    }
+
+    devsecItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            const devsecType = e.currentTarget.dataset.devsec;
+            showModal(devsecData[devsecType]);
+        });
+    });
+
+    responseSteps.forEach(step => {
+        step.addEventListener('click', (e) => {
+            const stepType = e.currentTarget.dataset.step;
+            showModal(responseData[stepType]);
+        });
+    });
+});
+</script>
+
+</body>
+</html>
